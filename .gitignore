@@ -11,3 +11,4 @@
 id_rsa*
 ansible/hosts
 ansible/*.retry
+.terraform.d*
