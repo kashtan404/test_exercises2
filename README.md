@@ -14,6 +14,8 @@ Also, I'm a not good in PHP, so, I'm not sure this code could work perfectly.
 
 Why run in docker? - Forstly, obviously it easier than writing/looking for right ansible role. Secondly, it keeps clean VMs. And finally, I like docker.
 
+And final note: Yes, it contains some strange things like 'hardcode', 'crutches', 'creative approach'. But I will never mean this solution as a production-ready, only just as a proof-of-concept.
+
 **Usage**:
 ```
 # To bootstrap AWS resources and provision with ansible
