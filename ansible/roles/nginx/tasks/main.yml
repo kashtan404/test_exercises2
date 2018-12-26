@@ -1,0 +1,79 @@
+---
+- name: Remove existing {{ docker_nginx__name }} container
+  docker_container:
+    name: "{{ docker_nginx__name }}"
+    state: absent
+  when: docker_nginx__remove_existing_container
+
+- name: Ensure group "nginx" exists
+  group:
+    name: nginx
+    state: present
+
+- name: Create user
+  user:
+    generate_ssh_key: no
+    name: "nginx"
+    groups: nginx
+    shell: /sbin/nologin
+    append: yes
+
+- name: Create directories
+  file:
+    state: directory
+    path: "{{ item.path }}"
+    mode: "{{ item.mode | default(0755) }}"
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.group | default('root') }}"
+  with_items: "{{ docker_nginx__directories }}"
+
+- name: Copy files
+  copy:
+    src: "{{ item }}"
+    dest: "{{docker_nginx__home }}/{{ item }}"
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.group | default('root') }}"
+  with_items:
+    - "blacklisted.php"
+    - "index.php"
+
+- name: Create directories 2
+  file:
+    state: directory
+    path: "/etc/nginx/sites-enabled"
+    mode: "0755"
+    owner: "root"
+    group: "root"
+
+- name: Copy files 2
+  copy:
+    src: "default.conf"
+    dest: "/etc/nginx/sites-enabled/default.conf"
+    owner: "root"
+    group: "root"
+
+- name: Run nginx container
+  docker_container:
+    name: "{{ docker_nginx__name }}"
+    image: "{{ docker_nginx__image }}"
+    pull: "{{ docker_nginx__pull_image }}"
+    restart_policy: always
+    network_mode: "{{ docker_nginx__network_mode }}"
+    networks: "{{ docker_nginx__networks }}"
+    expose:
+    - 80
+    ports: "{{ docker_nginx__ports }}"
+    user: root:root
+    env: "{{ docker_nginx__default_env | combine(docker_nginx__env) }}"
+    volumes: "{{ docker_nginx__directory_volumes + docker_nginx__file_volumes + docker_passwd_mount }}"
+    log_driver: "{{ docker_nginx__log_driver }}"
+    log_options: "{{ docker_nginx__log_options }}"
+
+- name: Wait for nginx to be started
+  wait_for:
+    host: "{{ docker_nginx__host }}"
+    port: "{{ docker_nginx__port }}"
+    state: started
+    delay: 5
+    connect_timeout: 15
+    timeout: 30

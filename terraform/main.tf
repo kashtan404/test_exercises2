@@ -1,6 +1,5 @@
 provider "aws" {
   region  = "${var.aws_region}"
-  version = "~> 1.54"
 }
 
 # Define our VPC
@@ -56,4 +55,27 @@ module "host3" {
   is_public = "true"
   userdata_file = "userdata_db.sh"
   tag_name = "db"
+}
+
+data "template_file" "dev_hosts" {
+  template = "${file("../ansible/dev_hosts.cfg")}"
+  depends_on = [
+    "module.host1",
+    "module.host2",
+    "module.host3"
+  ]
+  vars {
+    node1_ip = "${join(",", module.host1.public_ip)}"
+    node2_ip = "${join(",", module.host2.public_ip)}"
+    node3_ip = "${join(",", module.host3.public_ip)}"
+  }
+}
+
+resource "null_resource" "dev-hosts" {
+  triggers {
+    template_rendered = "${data.template_file.dev_hosts.rendered}"
+  }
+  provisioner "local-exec" {
+    command = "echo '${data.template_file.dev_hosts.rendered}' > ../ansible/hosts"
+  }
 }

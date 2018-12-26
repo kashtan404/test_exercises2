@@ -1,0 +1,53 @@
+- hosts: web
+  become: yes
+  become_method: sudo
+  vars:
+    docker_postgres__master_host: "{{ groups['pg_master'][0] }}"
+  roles:
+  - role: nginx
+
+- hosts: pg_master
+  become: yes
+  become_method: sudo
+  vars:
+    docker_postgres__master_host: "{{ groups['pg_master'][0] }}"
+    docker_postgres__master_port: 5432
+  pre_tasks:
+  - set_fact:
+      docker_postgres__postgresql_conf: |
+        {{ docker_postgres__postgresql_conf }}
+        max_wal_senders = 10
+        wal_keep_segments = 64
+        hot_standby = on
+        synchronous_standby_names = 'ANY 1 (*)'
+  roles:
+  - role: ansible-docker-postgres
+    docker_postgres__name: postgres-master
+    docker_postgres__port: "{{ docker_postgres__master_port }}"
+
+- hosts: pg_slave
+  become: yes
+  become_method: sudo
+  vars:
+    docker_postgres__master_host: "{{ groups['pg_master'][0] }}"
+    docker_postgres__master_port: 5432
+  pre_tasks:
+  - set_fact:
+      docker_postgres__postgresql_conf: |
+        {{ docker_postgres__postgresql_conf }}
+        max_wal_senders = 10
+        wal_keep_segments = 64
+        hot_standby = on
+        synchronous_standby_names = 'ANY 1 (*)'
+  roles:
+  - role: ansible-docker-postgres
+    docker_postgres__name: postgres-salve-1
+    docker_postgres__port: 5432
+    docker_postgres__slave: yes
+
+- hosts: pg_master
+  become: yes
+  become_method: sudo
+  tasks:
+    - name: Execute commands in docker container
+      command: docker exec --user postgres postgres-master psql -U postgres -d postgres -c 'CREATE TABLE blocked(vip VARCHAR (50) NOT NULL,vpath VARCHAR (50) NOT NULL,vdate VARCHAR (50) NOT NULL);'

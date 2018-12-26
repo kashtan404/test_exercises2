@@ -1,0 +1,32 @@
+---
+docker_nginx__name: nginx
+docker_nginx__image: richarvey/nginx-php-fpm
+docker_nginx__port: 80
+
+docker_nginx__remove_existing_container: yes
+docker_nginx__pull_image: yes
+docker_nginx__file_volumes: []
+docker_nginx__network_mode:
+docker_nginx__networks: []
+docker_nginx__env: {}
+docker_nginx__log_driver: json-file
+docker_nginx__log_options:
+docker_nginx__host: localhost
+
+# Don't change
+docker_nginx__home: "/opt/www"
+docker_nginx__directories:
+- path: "{{ docker_nginx__home }}"
+  mode: "0700"
+docker_nginx__ports:
+- "{{ docker_nginx__port }}:80"
+docker_nginx__directory_volumes:
+- "{{ docker_nginx__home }}:/var/www/html:z"
+- "/etc/nginx/sites-enabled:/etc/nginx/sites-enabled:z"
+docker_passwd_mount:
+- "/etc/passwd:/etc/passwd:ro"
+docker_nginx__default_env:
+  DBHOST: "{{ docker_postgres__master_host }}"
+  DBNAME: "blocked"
+  DBUSER: "postgres"
+  DBPASS: "postgres"
